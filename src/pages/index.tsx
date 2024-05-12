@@ -36,7 +36,7 @@ export default function Home({ products }: HomeProps) {
 
             <footer>
               <strong>{name}</strong>
-              <span>R$ {price} </span>
+              <span>{price}</span>
             </footer>
           </Product>
         );
@@ -58,7 +58,18 @@ export const getStaticProps: GetStaticProps = async ({}) => {
 
     const price = default_price as Stripe.Price;
 
-    return { id, name, imageUrl: images[0], price: price.unit_amount / 100 };
+    const formatOptions: [string, Intl.NumberFormatOptions] = [
+      'pt-BR',
+      {
+        style: 'currency',
+        currency: 'BRL',
+      },
+    ];
+    const formatedPrice = new Intl.NumberFormat(...formatOptions).format(
+      price.unit_amount / 100,
+    );
+
+    return { id, name, imageUrl: images[0], price: formatedPrice };
   });
 
   return {

@@ -7,12 +7,12 @@ import Stripe from 'stripe';
 import { stripe } from '../lib/stripe';
 import { HomeContainer, Product } from '../styles/pages/home';
 
-type Product = {
+interface Product {
   id: string;
   name: string;
   imageUrl: string;
-  price: number;
-};
+  price: string;
+}
 
 type HomeProps = {
   products: Product[];
@@ -49,11 +49,11 @@ export default function Home({ products }: HomeProps) {
 }
 
 export const getStaticProps: GetStaticProps = async ({}) => {
-  const params = {
+  const listParams = {
     expand: ['data.default_price'],
   };
 
-  const response = await stripe.products.list(params);
+  const response = await stripe.products.list(listParams);
   const { data } = response;
 
   const products = data.map((product) => {

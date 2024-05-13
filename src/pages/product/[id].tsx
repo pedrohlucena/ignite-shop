@@ -1,38 +1,91 @@
+import { GetStaticPaths, GetStaticProps } from 'next';
 import Image from 'next/image';
-import { useRouter } from 'next/router';
+import Stripe from 'stripe';
+import { stripe } from '../../lib/stripe';
 import {
   ImageContainer,
   ProductContainer,
   ProductDetails,
 } from '../../styles/pages/product';
 
-export default function Product() {
-  const { query } = useRouter();
+interface Product {
+  name: string;
+  description: string;
+  imageUrl: string;
+  price: string;
+}
+
+interface ProductProps {
+  product: Product;
+}
+
+export default function Product({ product }: ProductProps) {
+  const { name, description, imageUrl, price } = product;
 
   return (
     <ProductContainer>
       <ImageContainer>
-        <Image
-          src="https://files.stripe.com/links/MDB8YWNjdF8xUEZPMGVGQUk3aEQ1TUlafGZsX3Rlc3RfRkoxQ2t5THY0TzVFdGRiYmFpRW5zMGJJ00cBAwAJ15"
-          width={520}
-          height={480}
-          alt=""
-        />
+        <Image src={imageUrl} width={520} height={480} alt="" />
       </ImageContainer>
 
       <ProductDetails>
-        <h1>Camiseta X</h1>
-        <span>R$ 79,90</span>
+        <h1>{name}</h1>
+        <span>{price}</span>
 
-        <p>
-          Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam,
-          fugiat, earum obcaecati dolores voluptates nobis harum quidem officia
-          totam eveniet corrupti eius, esse molestiae repellat rem reprehenderit
-          ea pariatur eligendi.
-        </p>
+        <p>{description}</p>
 
         <button>Comprar agora</button>
       </ProductDetails>
     </ProductContainer>
   );
 }
+
+export const getStaticPaths: GetStaticPaths = async () => {
+  return {
+    paths: [],
+    fallback: 'blocking',
+  };
+};
+
+export const getStaticProps: GetStaticProps<any, { id: string }> = async ({
+  params,
+}) => {
+  const retrieveParams = {
+    expand: ['default_price'],
+  };
+
+  const stripeProduct = await stripe.products.retrieve(
+    params.id,
+    retrieveParams,
+  );
+
+  const { name, images, default_price, description } = stripeProduct;
+
+  const formatOptions: [string, Intl.NumberFormatOptions] = [
+    'pt-BR',
+    {
+      style: 'currency',
+      currency: 'BRL',
+    },
+  ];
+
+  const price = default_price as Stripe.Price;
+
+  const formatedPrice = new Intl.NumberFormat(...formatOptions).format(
+    price.unit_amount / 100,
+  );
+
+  const product = {
+    name,
+    description,
+    imageUrl: images[0],
+    price: formatedPrice,
+  };
+
+  return {
+    props: {
+      product,
+      revalidate: 60 * 60 * 1, // 1 hour
+    },
+  };
+};
